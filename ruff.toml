@@ -1,5 +1,4 @@
-# Ruff config version: 15
-# -----------------------
+# Config version: 0.15.0 (auto-managed)
 
 # Files and directories to exclude
 exclude = [

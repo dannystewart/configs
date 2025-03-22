@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import argparse
-from dataclasses import dataclass, field
 from pathlib import Path
 from typing import ClassVar
 
@@ -11,25 +10,54 @@ from dsbase.files import FileManager
 from dsbase.log import LocalLogger
 from dsbase.shell import confirm_action
 from dsbase.text.diff import show_diff
+from dsbase.version import PackageSource, VersionChecker
+
 from configs.config_file import ConfigFile
 
 
 class CodeConfigs:
     """Class to manage all code-related config files."""
 
+    # Config files to manage
     CONFIGS: ClassVar[list[ConfigFile]] = [
         ConfigFile("ruff.toml"),
         ConfigFile("mypy.ini"),
     ]
 
+    # Package name for version checking
+    PACKAGE_NAME: ClassVar[str] = "configs"
+
+    # Comment format for version tracking in config files
+    VERSION_COMMENT_FORMAT: ClassVar[dict[str, tuple[str, str]]] = {
+        ".ini": ("; ", ""),
+        ".json": ("// ", ""),
+        ".py": ("# ", ""),
+        ".toml": ("# ", ""),
+        ".yaml": ("# ", ""),
+        ".yml": ("# ", ""),
+    }
+
+    # Source for version checking
+    VERSION_SOURCE: ClassVar[PackageSource] = PackageSource.AUTO
+
     def __init__(self, skip_confirm: bool = False):
         self.logger = LocalLogger().get_logger()
         self.files = FileManager()
+        self.version_checker = VersionChecker()
+        self.version_info = self.version_checker.check_package(
+            self.PACKAGE_NAME, source=self.VERSION_SOURCE
+        )
 
         # Check if this is a first-time setup and skip confirmation if so, or if -y was used
         self.auto_confirm: bool = skip_confirm or self.first_time_setup
         if self.first_time_setup:
             self.logger.info("No configs found. Downloading all available configs.")
+
+        # Log version information
+        if self.version_info.current:
+            self.logger.info("Using config version %s", self.version_info.current)
+        else:
+            self.logger.warning("Package not installed. Using development version.")
 
         self.update_and_log()
 
@@ -61,15 +89,23 @@ class CodeConfigs:
         for config in self.CONFIGS:
             # Update the repo copy first, then the local copy
             if content := self.fetch_remote_content(config):
-                config.repo_path.write_text(content)
+                # Add version information to the content
+                versioned_content = self.add_version_to_content(content, config.name)
+                config.repo_path.write_text(versioned_content)
 
                 if config.local_path.exists():
-                    result = self.update_existing_config(config, content, self.auto_confirm)
-                    if result:
-                        updated_configs.append(config.name)
+                    # Check if config file needs updating
+                    if self.needs_update(config.local_path):
+                        result = self.update_existing_config(
+                            config, versioned_content, self.auto_confirm
+                        )
+                        if result:
+                            updated_configs.append(config.name)
+                        else:
+                            unchanged_configs.append(config.name)
                     else:
                         unchanged_configs.append(config.name)
-                elif self.create_new_config(config, content, self.auto_confirm):
+                elif self.create_new_config(config, versioned_content, self.auto_confirm):
                     updated_configs.append(config.name)
                 else:
                     unchanged_configs.append(config.name)
@@ -81,6 +117,89 @@ class CodeConfigs:
                 failed_configs.append(config.name)
 
         return updated_configs, failed_configs, unchanged_configs
+
+    def needs_update(self, config_path: Path) -> bool:
+        """Check if a config file needs updating based on its embedded version and content."""
+        if not config_path.exists():
+            return True
+
+        # Extract version from config file
+        config_version = self.extract_version_from_file(config_path)
+        current_version = self.version_info.current or "dev"
+
+        # If versions don't match, update is needed
+        if not config_version or config_version != current_version:
+            return True
+
+        # Even if versions match, check content to be sure
+        content = config_path.read_text()
+        repo_path = self.get_repo_path_for_config(config_path)
+
+        if not repo_path.exists():
+            # Can't compare content, so assume update is needed
+            return True
+
+        repo_content = repo_path.read_text()
+
+        # Compare content ignoring version lines
+        return not self.is_content_identical(content, repo_content)
+
+    def get_repo_path_for_config(self, config_path: Path) -> Path:
+        """Get the repository path for a given config file path."""
+        for config in self.CONFIGS:
+            if config.local_path == config_path:
+                return config.repo_path
+        # If not found, use a fallback approach
+        return Path(
+            str(config_path).replace(str(config_path.parent), str(self.CONFIGS[0].repo_path.parent))
+        )
+
+    def add_version_to_content(self, content: str, filename: str) -> str:
+        """Add version information to the content."""
+        suffix = Path(filename).suffix
+        comment_start, comment_end = self.VERSION_COMMENT_FORMAT.get(suffix, ("# ", ""))
+
+        version_str = self.version_info.current or "dev"
+        version_line = f"{comment_start}Config version: {version_str} (auto-managed){comment_end}\n"
+
+        # If there's already a version line, replace it
+        lines = content.splitlines()
+        for i, line in enumerate(lines):
+            if "Config version:" in line and "auto-managed" in line:
+                lines[i] = version_line.strip()
+                return "\n".join(lines)
+
+        # Otherwise, add it at the top
+        return f"{version_line}\n{content}"
+
+    def extract_version_from_file(self, file_path: Path) -> str | None:
+        """Extract version information from a file."""
+        if not file_path.exists():
+            return None
+
+        content = file_path.read_text()
+        for line in content.splitlines():
+            if "Config version:" in line and "auto-managed" in line:
+                try:
+                    return line.split("Config version:")[1].split("(auto-managed)")[0].strip()
+                except IndexError:
+                    pass
+        return None
+
+    def is_content_identical(self, content1: str, content2: str) -> bool:
+        """Check if content is identical ignoring version lines."""
+        lines1 = [
+            line
+            for line in content1.splitlines()
+            if "Config version:" not in line or "auto-managed" not in line
+        ]
+        lines2 = [
+            line
+            for line in content2.splitlines()
+            if "Config version:" not in line or "auto-managed" not in line
+        ]
+
+        return lines1 == lines2
 
     def fetch_remote_content(self, config: ConfigFile) -> str | None:
         """Fetch content from remote URL. Returns None if the fetch fails."""
@@ -104,7 +223,25 @@ class CodeConfigs:
             True if the file was updated, False otherwise.
         """
         current = config.local_path.read_text()
-        if current == content:
+        current_version = self.extract_version_from_file(config.local_path)
+        new_version = self.version_info.current or "dev"
+
+        # If only the version line is different, show a simplified message
+        if self.is_content_identical(current, content):
+            if current_version != new_version:
+                if auto_confirm or confirm_action(
+                    f"Update {config.name} config version from {current_version} to {new_version}?",
+                    default_to_yes=True,
+                ):
+                    config.local_path.write_text(content)
+                    self.logger.info(
+                        "Updated %s config version from %s to %s.",
+                        config.name,
+                        current_version,
+                        new_version,
+                    )
+                    return True
+                return False
             return False
 
         if not auto_confirm:
