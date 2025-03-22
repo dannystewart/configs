@@ -48,6 +48,11 @@ class CodeConfigs:
             self.PACKAGE_NAME, source=self.VERSION_SOURCE
         )
 
+        # Debug path information
+        self.logger.debug("Current working directory: %s", Path.cwd())
+        for config in self.CONFIGS:
+            self.logger.debug("Config %s path: %s", config.name, config.path)
+
         # Check if this is a first-time setup and skip confirmation if so, or if -y was used
         self.auto_confirm: bool = skip_confirm or self.first_time_setup
         if self.first_time_setup:
@@ -87,15 +92,14 @@ class CodeConfigs:
         unchanged_configs = []
 
         for config in self.CONFIGS:
-            # Update the repo copy first, then the local copy
+            # Fetch content from remote source
             if content := self.fetch_remote_content(config):
                 # Add version information to the content
                 versioned_content = self.add_version_to_content(content, config.name)
-                config.repo_path.write_text(versioned_content)
 
-                if config.local_path.exists():
+                if config.path.exists():
                     # Check if config file needs updating
-                    if self.needs_update(config.local_path):
+                    if self.needs_update(config.path):
                         result = self.update_existing_config(
                             config, versioned_content, self.auto_confirm
                         )
@@ -109,17 +113,14 @@ class CodeConfigs:
                     updated_configs.append(config.name)
                 else:
                     unchanged_configs.append(config.name)
-
-            # Try to use the fallback config if the remote fetch failed
-            elif self.use_fallback_config(config):
-                updated_configs.append(config.name)
             else:
+                # If remote fetch failed, report it
                 failed_configs.append(config.name)
 
         return updated_configs, failed_configs, unchanged_configs
 
     def needs_update(self, config_path: Path) -> bool:
-        """Check if a config file needs updating based on its embedded version and content."""
+        """Check if a config file needs updating based on its embedded version."""
         if not config_path.exists():
             return True
 
@@ -128,31 +129,7 @@ class CodeConfigs:
         current_version = self.version_info.current or "dev"
 
         # If versions don't match, update is needed
-        if not config_version or config_version != current_version:
-            return True
-
-        # Even if versions match, check content to be sure
-        content = config_path.read_text()
-        repo_path = self.get_repo_path_for_config(config_path)
-
-        if not repo_path.exists():
-            # Can't compare content, so assume update is needed
-            return True
-
-        repo_content = repo_path.read_text()
-
-        # Compare content ignoring version lines
-        return not self.is_content_identical(content, repo_content)
-
-    def get_repo_path_for_config(self, config_path: Path) -> Path:
-        """Get the repository path for a given config file path."""
-        for config in self.CONFIGS:
-            if config.local_path == config_path:
-                return config.repo_path
-        # If not found, use a fallback approach
-        return Path(
-            str(config_path).replace(str(config_path.parent), str(self.CONFIGS[0].repo_path.parent))
-        )
+        return not config_version or config_version != current_version
 
     def add_version_to_content(self, content: str, filename: str) -> str:
         """Add version information to the content."""
@@ -186,21 +163,6 @@ class CodeConfigs:
                     pass
         return None
 
-    def is_content_identical(self, content1: str, content2: str) -> bool:
-        """Check if content is identical ignoring version lines."""
-        lines1 = [
-            line
-            for line in content1.splitlines()
-            if "Config version:" not in line or "auto-managed" not in line
-        ]
-        lines2 = [
-            line
-            for line in content2.splitlines()
-            if "Config version:" not in line or "auto-managed" not in line
-        ]
-
-        return lines1 == lines2
-
     def fetch_remote_content(self, config: ConfigFile) -> str | None:
         """Fetch content from remote URL. Returns None if the fetch fails."""
         try:
@@ -222,18 +184,30 @@ class CodeConfigs:
         Returns:
             True if the file was updated, False otherwise.
         """
-        current = config.local_path.read_text()
-        current_version = self.extract_version_from_file(config.local_path)
+        current = config.path.read_text()
+        current_version = self.extract_version_from_file(config.path)
         new_version = self.version_info.current or "dev"
 
+        # Compare content without version lines
+        lines1 = [
+            line
+            for line in current.splitlines()
+            if "Config version:" not in line or "auto-managed" not in line
+        ]
+        lines2 = [
+            line
+            for line in content.splitlines()
+            if "Config version:" not in line or "auto-managed" not in line
+        ]
+
         # If only the version line is different, show a simplified message
-        if self.is_content_identical(current, content):
+        if lines1 == lines2:
             if current_version != new_version:
                 if auto_confirm or confirm_action(
                     f"Update {config.name} config version from {current_version} to {new_version}?",
                     default_to_yes=True,
                 ):
-                    config.local_path.write_text(content)
+                    config.path.write_text(content)
                     self.logger.info(
                         "Updated %s config version from %s to %s.",
                         config.name,
@@ -245,10 +219,10 @@ class CodeConfigs:
             return False
 
         if not auto_confirm:
-            show_diff(current, content, config.local_path.name)
+            show_diff(current, content, config.path.name)
 
         if auto_confirm or confirm_action(f"Update {config.name} config?", default_to_yes=True):
-            config.local_path.write_text(content)
+            config.path.write_text(content)
             self.logger.info("Updated %s config.", config.name)
             return True
 
@@ -266,33 +240,17 @@ class CodeConfigs:
             True if the file was updated, False otherwise.
         """
         if auto_confirm or confirm_action(f"Create new {config.name} config?", default_to_yes=True):
-            config.local_path.write_text(content)
+            config.path.write_text(content)
             self.logger.info("Created new %s config.", config.name)
             return True
 
         self.logger.debug("Skipped creation of %s config.", config.name)
         return False
 
-    def use_fallback_config(self, config: ConfigFile) -> bool:
-        """Use fallback config when remote fetch fails. Returns True if the fallback was used."""
-        if not config.repo_path.exists():
-            self.logger.error("No fallback available for %s config.", config.name)
-            return False
-
-        if config.local_path.exists():
-            if not confirm_action(
-                f"Use repository version of {config.name} config?", default_to_yes=True
-            ):
-                return False
-
-        self.files.copy(config.repo_path, config.local_path)
-        self.logger.warning("Used repository version for %s config.", config.name)
-        return True
-
     @property
     def first_time_setup(self) -> bool:
         """Check if this is a first-time setup (no configs exist yet)."""
-        return not any(config.local_path.exists() for config in self.CONFIGS)
+        return not any(config.path.exists() for config in self.CONFIGS)
 
 
 def parse_args() -> argparse.Namespace:
