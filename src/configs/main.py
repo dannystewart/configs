@@ -91,7 +91,7 @@ class CodeConfigs:
         """Update config files from remote source. Skip confirmation if auto_confirm is True."""
         updated_configs, failed_configs, unchanged_configs = self.update_configs()
 
-        if updated_configs:
+        if updated_configs and not self.first_time_setup:
             self.logger.info("Updated configs: %s", ", ".join(updated_configs))
         if unchanged_configs:
             self.logger.info("Already up-to-date: %s", ", ".join(unchanged_configs))
