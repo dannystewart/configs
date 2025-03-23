@@ -81,7 +81,7 @@ class CodeConfigs:
 
         # Log version information
         if self.version_info.current:
-            self.logger.info("Current config version: %s", self.get_config_version())
+            self.logger.info("Latest config version: %s", self.get_latest_version())
         else:
             self.logger.warning("Package not installed. Using development version.")
 
@@ -143,26 +143,31 @@ class CodeConfigs:
         if not config_path.exists():
             return True
 
-        # Extract version from config file
-        config_version = self.extract_version_from_file(config_path)
+        # Extract version from local config file
+        local_version = self.get_local_version(config_path)
 
-        # Extract minor version from current version
-        full_version = self.version_info.current or "dev"
-        if full_version != "dev":
-            # Split by dots and take first two components
-            version_parts = full_version.split(".")
-            if len(version_parts) >= 2:
-                current_version = f"{version_parts[0]}.{version_parts[1]}"
-            else:
-                current_version = full_version
-        else:
-            current_version = "dev"
+        # Get the latest version
+        latest_version = self.get_latest_version()
 
         # If versions don't match, update is needed
-        return not config_version or config_version != current_version
+        return not local_version or local_version != latest_version
 
-    def get_config_version(self) -> str:
-        """Extract the config version (minor version) from the full package version."""
+    def get_local_version(self, config_path: Path) -> str | None:
+        """Extract the version from a local config file."""
+        if not config_path.exists():
+            return None
+
+        content = config_path.read_text()
+        for line in content.splitlines():
+            if "Config version:" in line and "auto-managed" in line:
+                try:
+                    return line.split("Config version:")[1].split("(auto-managed)")[0].strip()
+                except IndexError:
+                    pass
+        return None
+
+    def get_latest_version(self) -> str:
+        """Get the latest config version based on the package version."""
         full_version = self.version_info.current or "dev"
         if full_version != "dev":
             # Split by dots and take first two components
@@ -177,21 +182,9 @@ class CodeConfigs:
         suffix = Path(filename).suffix
         comment_start, comment_end = self.VERSION_COMMENT_FORMAT.get(suffix, ("# ", ""))
 
-        # Extract and use only the minor version (0.16 from 0.16.1)
-        full_version = self.version_info.current or "dev"
-        if full_version != "dev":
-            # Split by dots and take first two components
-            version_parts = full_version.split(".")
-            if len(version_parts) >= 2:
-                minor_version = f"{version_parts[0]}.{version_parts[1]}"
-            else:
-                minor_version = full_version
-        else:
-            minor_version = "dev"
-
-        version_line = (
-            f"{comment_start}Config version: {minor_version} (auto-managed){comment_end}\n"
-        )
+        # Use the latest version
+        latest_ver = self.get_latest_version()
+        version_line = f"{comment_start}Config version: {latest_ver} (auto-managed){comment_end}\n"
 
         # Strip any existing version lines
         lines = content.splitlines()
@@ -242,19 +235,8 @@ class CodeConfigs:
             True if the file was updated, False otherwise.
         """
         current = config.path.read_text()
-        current_version = self.extract_version_from_file(config.path)
-
-        # Extract minor version from current version
-        full_version = self.version_info.current or "dev"
-        if full_version != "dev":
-            # Split by dots and take first two components
-            version_parts = full_version.split(".")
-            if len(version_parts) >= 2:
-                new_version = f"{version_parts[0]}.{version_parts[1]}"
-            else:
-                new_version = full_version
-        else:
-            new_version = "dev"
+        local_version = self.get_local_version(config.path)
+        latest_version = self.get_latest_version()
 
         # Get content without version lines for comparison
         current_lines = [
@@ -262,8 +244,6 @@ class CodeConfigs:
             for line in current.splitlines()
             if "Config version:" not in line or "auto-managed" not in line
         ]
-
-        # Get the content part of the new content (without version line)
         content_lines = [
             line
             for line in content.splitlines()
@@ -272,17 +252,18 @@ class CodeConfigs:
 
         # If only the version line is different, show a simplified message
         if current_lines == content_lines:
-            if current_version != new_version:
+            if local_version != latest_version:
                 if auto_confirm or confirm_action(
-                    f"Update {config.name} config version from {current_version} to {new_version}?",
+                    f"Update {config.name} config version from {local_version} to {latest_version}?",
                     default_to_yes=True,
+                    prompt_color="yellow",
                 ):
                     config.path.write_text(content)
                     self.logger.info(
                         "Updated %s config version from %s to %s.",
                         config.name,
-                        current_version,
-                        new_version,
+                        local_version,
+                        latest_version,
                     )
                     return True
                 return False
