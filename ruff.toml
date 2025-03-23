@@ -1,5 +1,3 @@
-# Config version: 0.15.0 (auto-managed)
-
 # Files and directories to exclude
 exclude = [
     "__pypackages__",

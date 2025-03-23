@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import ClassVar
 
@@ -12,7 +13,22 @@ from dsbase.shell import confirm_action
 from dsbase.text.diff import show_diff
 from dsbase.version import PackageSource, VersionChecker
 
-from configs.config_file import ConfigFile
+
+@dataclass
+class ConfigFile:
+    """Represents a config file that can be updated from a remote source."""
+
+    CONFIG_ROOT: ClassVar[str] = (
+        "https://raw.githubusercontent.com/dannystewart/configs/refs/heads/main"
+    )
+
+    name: str
+    url: str = field(init=False)
+    path: Path = field(init=False)
+
+    def __post_init__(self):
+        self.url = f"{self.CONFIG_ROOT}/{self.name}"
+        self.path = Path.cwd() / self.name
 
 
 class CodeConfigs:
@@ -132,22 +148,24 @@ class CodeConfigs:
         return not config_version or config_version != current_version
 
     def add_version_to_content(self, content: str, filename: str) -> str:
-        """Add version information to the content."""
+        """Add version information to the content at download time.
+
+        The version comment is only added locally and not expected to be in the repo files.
+        """
         suffix = Path(filename).suffix
         comment_start, comment_end = self.VERSION_COMMENT_FORMAT.get(suffix, ("# ", ""))
 
         version_str = self.version_info.current or "dev"
         version_line = f"{comment_start}Config version: {version_str} (auto-managed){comment_end}\n"
 
-        # If there's already a version line, replace it
+        # Strip any existing version lines
         lines = content.splitlines()
-        for i, line in enumerate(lines):
-            if "Config version:" in line and "auto-managed" in line:
-                lines[i] = version_line.strip()
-                return "\n".join(lines)
+        cleaned_lines = [
+            line for line in lines if "Config version:" not in line or "auto-managed" not in line
+        ]
 
-        # Otherwise, add it at the top
-        return f"{version_line}\n{content}"
+        # Add the version line at the top
+        return f"{version_line}\n" + "\n".join(cleaned_lines)
 
     def extract_version_from_file(self, file_path: Path) -> str | None:
         """Extract version information from a file."""
@@ -178,7 +196,7 @@ class CodeConfigs:
 
         Args:
             config: The config file to update.
-            content: The new content to update the config file with.
+            content: The new content to update the config file with (including version comment).
             auto_confirm: If True, skip the confirmation prompt and write the file directly.
 
         Returns:
@@ -188,20 +206,22 @@ class CodeConfigs:
         current_version = self.extract_version_from_file(config.path)
         new_version = self.version_info.current or "dev"
 
-        # Compare content without version lines
-        lines1 = [
+        # Get content without version lines for comparison
+        current_lines = [
             line
             for line in current.splitlines()
             if "Config version:" not in line or "auto-managed" not in line
         ]
-        lines2 = [
+
+        # Get the content part of the new content (without version line)
+        content_lines = [
             line
             for line in content.splitlines()
             if "Config version:" not in line or "auto-managed" not in line
         ]
 
         # If only the version line is different, show a simplified message
-        if lines1 == lines2:
+        if current_lines == content_lines:
             if current_version != new_version:
                 if auto_confirm or confirm_action(
                     f"Update {config.name} config version from {current_version} to {new_version}?",
