@@ -81,7 +81,7 @@ class CodeConfigs:
 
         # Log version information
         if self.version_info.current:
-            self.logger.info("Using config version %s", self.version_info.current)
+            self.logger.info("Current config version: %s", self.get_config_version())
         else:
             self.logger.warning("Package not installed. Using development version.")
 
@@ -103,8 +103,6 @@ class CodeConfigs:
         elif not updated_configs:
             if failed_configs and not unchanged_configs:
                 self.logger.info("No configs updated due to errors.")
-            else:
-                self.logger.info("No configs needed updating.")
 
     def update_configs(self) -> tuple[list[str], list[str], list[str]]:
         """Update config files from remote source."""
@@ -162,6 +160,17 @@ class CodeConfigs:
 
         # If versions don't match, update is needed
         return not config_version or config_version != current_version
+
+    def get_config_version(self) -> str:
+        """Extract the config version (minor version) from the full package version."""
+        full_version = self.version_info.current or "dev"
+        if full_version != "dev":
+            # Split by dots and take first two components
+            version_parts = full_version.split(".")
+            if len(version_parts) >= 2:
+                return f"{version_parts[0]}.{version_parts[1]}"
+            return full_version
+        return "dev"
 
     def add_version_to_content(self, content: str, filename: str) -> str:
         """Add version information to the content at download time."""
