@@ -190,8 +190,8 @@ section-order = [
 ]
 
 [lint.isort.sections]
-personal_util = ["dsbase", "dsutil"]
-personal_bin = ["dsbin"]
+personal_util = ["configs", "dsbase", "dsutil"]
+personal_bin = ["dsbin", "dsupdater", "evremixes", "iplookup", "prism", "pybounce", "workcalc", "wpmusic"]
 
 [lint.mccabe]
 max-complexity = 10
