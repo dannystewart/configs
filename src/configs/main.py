@@ -272,7 +272,9 @@ class CodeConfigs:
         if not auto_confirm:
             show_diff(current, content, config.path.name)
 
-        if auto_confirm or confirm_action(f"Update {config.name} config?", default_to_yes=True):
+        if auto_confirm or confirm_action(
+            f"Update {config.name} config?", default_to_yes=True, prompt_color="yellow"
+        ):
             config.path.write_text(content)
             self.logger.info("Updated %s config.", config.name)
             return True
@@ -290,7 +292,9 @@ class CodeConfigs:
         Returns:
             True if the file was updated, False otherwise.
         """
-        if auto_confirm or confirm_action(f"Create new {config.name} config?", default_to_yes=True):
+        if auto_confirm or confirm_action(
+            f"Create new {config.name} config?", default_to_yes=True, prompt_color="green"
+        ):
             config.path.write_text(content)
             self.logger.info("Created new %s config.", config.name)
             return True
