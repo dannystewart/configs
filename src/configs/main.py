@@ -7,8 +7,7 @@ from typing import ClassVar
 
 import requests
 
-from dsbase.files import FileManager
-from dsbase.log import LocalLogger
+from dsbase import FileManager, LocalLogger
 from dsbase.shell import confirm_action
 from dsbase.text.diff import show_diff
 from dsbase.version import PackageSource, VersionChecker
@@ -151,6 +150,7 @@ class CodeConfigs:
         """Add version information to the content at download time.
 
         The version comment is only added locally and not expected to be in the repo files.
+        Preserves blank lines at the end of the file.
         """
         suffix = Path(filename).suffix
         comment_start, comment_end = self.VERSION_COMMENT_FORMAT.get(suffix, ("# ", ""))
@@ -164,8 +164,12 @@ class CodeConfigs:
             line for line in lines if "Config version:" not in line or "auto-managed" not in line
         ]
 
-        # Add the version line at the top
-        return f"{version_line}\n" + "\n".join(cleaned_lines)
+        # Count trailing blank lines in the original content and ensure at least one
+        trailing_newlines = len(content) - len(content.rstrip("\n"))
+        trailing_newlines = max(1, trailing_newlines)
+
+        # Add the version line at the top and preserve trailing newlines
+        return f"{version_line}\n" + "\n".join(cleaned_lines) + "\n" * trailing_newlines
 
     def extract_version_from_file(self, file_path: Path) -> str | None:
         """Extract version information from a file."""
