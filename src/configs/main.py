@@ -7,7 +7,7 @@ from typing import ClassVar
 
 import requests
 
-from dsbase import FileManager, LocalLogger
+from dsbase import EnvManager, FileManager, LocalLogger
 from dsbase.shell import confirm_action
 from dsbase.text.diff import show_diff
 from dsbase.version import PackageSource, VersionChecker
@@ -56,9 +56,15 @@ class CodeConfigs:
     VERSION_SOURCE: ClassVar[PackageSource] = PackageSource.AUTO
 
     def __init__(self, skip_confirm: bool = False):
-        self.logger = LocalLogger().get_logger()
+        # Use EnvManager to get debug level for logging
+        env = EnvManager()
+        env.add_debug_var()
+
+        self.logger = LocalLogger().get_logger(level=env.log_level)
         self.files = FileManager()
         self.version_checker = VersionChecker()
+
+        # Get version info
         self.version_info = self.version_checker.check_package(
             self.PACKAGE_NAME, source=self.VERSION_SOURCE
         )
