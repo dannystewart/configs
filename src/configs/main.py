@@ -185,7 +185,7 @@ class CodeConfigs:
 
         # Use the latest version
         latest_ver = self.get_latest_version()
-        version_line = f"{comment_start}Config version: {latest_ver} (auto-managed){comment_end}\n"
+        version_line = f"{comment_start}Config version: {latest_ver} (auto-managed){comment_end}"
 
         # Strip any existing version lines
         lines = content.splitlines()
@@ -197,8 +197,12 @@ class CodeConfigs:
         trailing_newlines = len(content) - len(content.rstrip("\n"))
         trailing_newlines = max(1, trailing_newlines)
 
-        # Add the version line at the top and preserve trailing newlines
-        return f"{version_line}\n" + "\n".join(cleaned_lines) + "\n" * trailing_newlines
+        # Add version line, preserve trailing newlines, but ensure no double blank lines
+        result = version_line + "\n" + "\n".join(cleaned_lines) + "\n" * trailing_newlines
+        while "\n\n\n" in result:
+            result = result.replace("\n\n\n", "\n\n")
+
+        return result
 
     def extract_version_from_file(self, file_path: Path) -> str | None:
         """Extract version information from a file."""
