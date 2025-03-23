@@ -141,22 +141,42 @@ class CodeConfigs:
 
         # Extract version from config file
         config_version = self.extract_version_from_file(config_path)
-        current_version = self.version_info.current or "dev"
+
+        # Extract minor version from current version
+        full_version = self.version_info.current or "dev"
+        if full_version != "dev":
+            # Split by dots and take first two components
+            version_parts = full_version.split(".")
+            if len(version_parts) >= 2:
+                current_version = f"{version_parts[0]}.{version_parts[1]}"
+            else:
+                current_version = full_version
+        else:
+            current_version = "dev"
 
         # If versions don't match, update is needed
         return not config_version or config_version != current_version
 
     def add_version_to_content(self, content: str, filename: str) -> str:
-        """Add version information to the content at download time.
-
-        The version comment is only added locally and not expected to be in the repo files.
-        Preserves blank lines at the end of the file.
-        """
+        """Add version information to the content at download time."""
         suffix = Path(filename).suffix
         comment_start, comment_end = self.VERSION_COMMENT_FORMAT.get(suffix, ("# ", ""))
 
-        version_str = self.version_info.current or "dev"
-        version_line = f"{comment_start}Config version: {version_str} (auto-managed){comment_end}\n"
+        # Extract and use only the minor version (0.16 from 0.16.1)
+        full_version = self.version_info.current or "dev"
+        if full_version != "dev":
+            # Split by dots and take first two components
+            version_parts = full_version.split(".")
+            if len(version_parts) >= 2:
+                minor_version = f"{version_parts[0]}.{version_parts[1]}"
+            else:
+                minor_version = full_version
+        else:
+            minor_version = "dev"
+
+        version_line = (
+            f"{comment_start}Config version: {minor_version} (auto-managed){comment_end}\n"
+        )
 
         # Strip any existing version lines
         lines = content.splitlines()
@@ -208,7 +228,18 @@ class CodeConfigs:
         """
         current = config.path.read_text()
         current_version = self.extract_version_from_file(config.path)
-        new_version = self.version_info.current or "dev"
+
+        # Extract minor version from current version
+        full_version = self.version_info.current or "dev"
+        if full_version != "dev":
+            # Split by dots and take first two components
+            version_parts = full_version.split(".")
+            if len(version_parts) >= 2:
+                new_version = f"{version_parts[0]}.{version_parts[1]}"
+            else:
+                new_version = full_version
+        else:
+            new_version = "dev"
 
         # Get content without version lines for comparison
         current_lines = [
