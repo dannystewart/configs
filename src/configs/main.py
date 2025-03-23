@@ -89,9 +89,10 @@ class CodeConfigs:
 
     def update_and_log(self) -> None:
         """Update config files from remote source. Skip confirmation if auto_confirm is True."""
+        was_first_time_setup = self.first_time_setup
         updated_configs, failed_configs, unchanged_configs = self.update_configs()
 
-        if updated_configs and not self.first_time_setup:
+        if updated_configs and not was_first_time_setup:
             self.logger.info("Updated configs: %s", ", ".join(updated_configs))
         if unchanged_configs:
             self.logger.info("Already up-to-date: %s", ", ".join(unchanged_configs))
