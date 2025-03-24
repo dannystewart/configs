@@ -128,14 +128,14 @@ files = [
 
 [[package]]
 name = "dsbase"
-version = "0.3.3"
+version = "0.3.7"
 description = "Python utilities and helpers for logging, environment management, file operations, and more"
 optional = false
 python-versions = ">=3.12"
 groups = ["main"]
 files = [
-    {file = "dsbase-0.3.3-py3-none-any.whl", hash = "sha256:8b40cc99eaf394a8ce393acac23213242fa4fca5d7c6049566a330ab1cfd3cf0"},
-    {file = "dsbase-0.3.3.tar.gz", hash = "sha256:603710507683936ea6ee108389cf5739df46b99594179a7cd633a21dbd0f5254"},
+    {file = "dsbase-0.3.7-py3-none-any.whl", hash = "sha256:ac160c114d7c69c686d4c5dc1ce320c2b5794986ad0428e9a1df7dc3f06d6d87"},
+    {file = "dsbase-0.3.7.tar.gz", hash = "sha256:1f0f3017eb9c751ae01583cfcde7eb1996e3c8f03a4bdf3bbdc31bc6dc3d59b6"},
 ]
 
 [package.dependencies]
@@ -154,7 +154,7 @@ termcolor = ">=2.5.0,<3.0.0"
 tomlkit = ">=0.13.2,<0.14.0"
 types-requests = ">=2.32.0.20250306,<3.0.0.0"
 types-send2trash = ">=1.8.2.7,<2.0.0.0"
-tzdata = ">=2025.1"
+tzdata = ">=2025.2"
 watchdog = ">=6.0.0,<7.0.0"
 
 [[package]]
@@ -628,14 +628,14 @@ files = [
 
 [[package]]
 name = "tzdata"
-version = "2025.1"
+version = "2025.2"
 description = "Provider of IANA time zone data"
 optional = false
 python-versions = ">=2"
 groups = ["main"]
 files = [
-    {file = "tzdata-2025.1-py2.py3-none-any.whl", hash = "sha256:7e127113816800496f027041c570f50bcd464a020098a3b6b199517772303639"},
-    {file = "tzdata-2025.1.tar.gz", hash = "sha256:24894909e88cdb28bd1636c6887801df64cb485bd593f2fd83ef29075a81d694"},
+    {file = "tzdata-2025.2-py2.py3-none-any.whl", hash = "sha256:1a403fada01ff9221ca8044d701868fa132215d84beb92242d9acd2147f667a8"},
+    {file = "tzdata-2025.2.tar.gz", hash = "sha256:b60a638fcc0daffadf82fe0f57e53d06bdec2f36c4df66280ae79bce6bd6f2b9"},
 ]
 
 [[package]]
@@ -702,4 +702,4 @@ watchmedo = ["PyYAML (>=3.10)"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.12"
-content-hash = "f625a3ba3e49da0afd8912e0c49a9ed630641c5dbdd73f7119e6d6ad327aa24d"
+content-hash = "bafb75255ff2ebbf441dedcc4c9ac0c70f1469283ba0d0019976778add33755e"
