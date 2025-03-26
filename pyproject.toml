@@ -1,6 +1,6 @@
 [project]
 name = "configs"
-version = "0.17.3"
+version = "0.17.4"
 description = "My preferred configs for various coding tools"
 authors = [{ name = "Danny Stewart", email = "danny@stewart.cc" }]
 urls = { repository = "https://github.com/dannystewart/configs" }
