@@ -128,14 +128,14 @@ files = [
 
 [[package]]
 name = "dsbase"
-version = "0.3.7"
-description = "Python utilities and helpers for logging, environment management, file operations, and more"
+version = "0.4.1"
+description = "Delightful Python utility library with power and personality"
 optional = false
 python-versions = ">=3.12"
 groups = ["main"]
 files = [
-    {file = "dsbase-0.3.7-py3-none-any.whl", hash = "sha256:ac160c114d7c69c686d4c5dc1ce320c2b5794986ad0428e9a1df7dc3f06d6d87"},
-    {file = "dsbase-0.3.7.tar.gz", hash = "sha256:1f0f3017eb9c751ae01583cfcde7eb1996e3c8f03a4bdf3bbdc31bc6dc3d59b6"},
+    {file = "dsbase-0.4.1-py3-none-any.whl", hash = "sha256:e02bc3936b2c94d17bfa9233fc4c575c8ac9231d192f4ec0cd0e75f8b5fa6423"},
+    {file = "dsbase-0.4.1.tar.gz", hash = "sha256:b5b688bc846af08da5ba838b0d4e13768df4d576837448834088d8a27b24380f"},
 ]
 
 [package.dependencies]
@@ -155,6 +155,7 @@ tomlkit = ">=0.13.2,<0.14.0"
 types-requests = ">=2.32.0.20250306,<3.0.0.0"
 types-send2trash = ">=1.8.2.7,<2.0.0.0"
 tzdata = ">=2025.2"
+tzlocal = ">=5.3.1"
 watchdog = ">=6.0.0,<7.0.0"
 
 [[package]]
@@ -393,14 +394,14 @@ six = ">=1.5"
 
 [[package]]
 name = "python-dotenv"
-version = "1.0.1"
+version = "1.1.0"
 description = "Read key-value pairs from a .env file and set them as environment variables"
 optional = false
-python-versions = ">=3.8"
+python-versions = ">=3.9"
 groups = ["main"]
 files = [
-    {file = "python-dotenv-1.0.1.tar.gz", hash = "sha256:e324ee90a023d808f1959c46bcbc04446a10ced277783dc6ee09987c37ec10ca"},
-    {file = "python_dotenv-1.0.1-py3-none-any.whl", hash = "sha256:f7b63ef50f1b690dddf550d03497b66d609393b40b564ed0d674909a68ebf16a"},
+    {file = "python_dotenv-1.1.0-py3-none-any.whl", hash = "sha256:d7c01d9e2293916c18baf562d95698754b0dbbb5e74d457c45d4f6561fb9d55d"},
+    {file = "python_dotenv-1.1.0.tar.gz", hash = "sha256:41f90bc6f5f177fb41f53e87666db362025010eb28f60a01c9143bfa33a2b2d5"},
 ]
 
 [package.extras]
@@ -616,14 +617,14 @@ files = [
 
 [[package]]
 name = "typing-extensions"
-version = "4.12.2"
+version = "4.13.0"
 description = "Backported and Experimental Type Hints for Python 3.8+"
 optional = false
 python-versions = ">=3.8"
 groups = ["dev"]
 files = [
-    {file = "typing_extensions-4.12.2-py3-none-any.whl", hash = "sha256:04e5ca0351e0f3f85c6853954072df659d0d13fac324d0072316b67d7794700d"},
-    {file = "typing_extensions-4.12.2.tar.gz", hash = "sha256:1a7ead55c7e559dd4dee8856e3a88b41225abfe1ce8df57b7c13915fe121ffb8"},
+    {file = "typing_extensions-4.13.0-py3-none-any.whl", hash = "sha256:c8dd92cc0d6425a97c18fbb9d1954e5ff92c1ca881a309c45f06ebc0b79058e5"},
+    {file = "typing_extensions-4.13.0.tar.gz", hash = "sha256:0a4ac55a5820789d87e297727d229866c9650f6521b64206413c4fbada24d95b"},
 ]
 
 [[package]]
@@ -637,6 +638,24 @@ files = [
     {file = "tzdata-2025.2-py2.py3-none-any.whl", hash = "sha256:1a403fada01ff9221ca8044d701868fa132215d84beb92242d9acd2147f667a8"},
     {file = "tzdata-2025.2.tar.gz", hash = "sha256:b60a638fcc0daffadf82fe0f57e53d06bdec2f36c4df66280ae79bce6bd6f2b9"},
 ]
+
+[[package]]
+name = "tzlocal"
+version = "5.3.1"
+description = "tzinfo object for the local timezone"
+optional = false
+python-versions = ">=3.9"
+groups = ["main"]
+files = [
+    {file = "tzlocal-5.3.1-py3-none-any.whl", hash = "sha256:eb1a66c3ef5847adf7a834f1be0800581b683b5608e74f86ecbcef8ab91bb85d"},
+    {file = "tzlocal-5.3.1.tar.gz", hash = "sha256:cceffc7edecefea1f595541dbd6e990cb1ea3d19bf01b2809f362a03dd7921fd"},
+]
+
+[package.dependencies]
+tzdata = {version = "*", markers = "platform_system == \"Windows\""}
+
+[package.extras]
+devenv = ["check-manifest", "pytest (>=4.3)", "pytest-cov", "pytest-mock (>=3.3)", "zest.releaser"]
 
 [[package]]
 name = "urllib3"
@@ -702,4 +721,4 @@ watchmedo = ["PyYAML (>=3.10)"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.12"
-content-hash = "bafb75255ff2ebbf441dedcc4c9ac0c70f1469283ba0d0019976778add33755e"
+content-hash = "4b68f84f2b242422bdac39488ad1d705dec2d913e2da9a5e2d111841c70e2909"
